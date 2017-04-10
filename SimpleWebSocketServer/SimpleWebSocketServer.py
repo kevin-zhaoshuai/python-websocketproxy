@@ -111,6 +111,7 @@ class WebSocket(object):
       """
           Called when websocket frame is received.
           To access the frame data call self.data.
+
           If the frame is Text then self.data is a unicode object.
           If the frame is Binary then self.data is a bytearray object.
       """
@@ -285,6 +286,7 @@ class WebSocket(object):
        """
           Send Close frame to the client. The underlying socket is only closed
           when the client acknowledges the Close frame.
+
           status is the closing identifier.
           reason is the reason for the close.
         """
@@ -334,6 +336,7 @@ class WebSocket(object):
           Send the start of a data fragment stream to a websocket client.
           Subsequent data should be sent using sendFragment().
           A fragment stream is completed when sendFragmentEnd() is called.
+
           If data is a unicode object then the frame is sent as Text.
           If the data is a bytearray object then the frame is sent as Binary.
       """
@@ -345,6 +348,7 @@ class WebSocket(object):
    def sendFragment(self, data):
       """
           see sendFragmentStart()
+
           If data is a unicode object then the frame is sent as Text.
           If the data is a bytearray object then the frame is sent as Binary.
       """
@@ -353,6 +357,7 @@ class WebSocket(object):
    def sendFragmentEnd(self, data):
       """
           see sendFragmentEnd()
+
           If data is a unicode object then the frame is sent as Text.
           If the data is a bytearray object then the frame is sent as Binary.
       """
@@ -361,6 +366,7 @@ class WebSocket(object):
    def sendMessage(self, data):
       """
           Send websocket data frame to the client.
+
           If data is a unicode object then the frame is sent as Text.
           If the data is a bytearray object then the frame is sent as Binary.
       """

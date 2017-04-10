@@ -2,8 +2,8 @@ import termios
 import sys
 import logging
 import argparse
-from websocketproxy.websocketclient import websocketclient as Client
-from websocket_server import WebsocketServer
+from websocketproxy.websocketclient import WebSocketClient as Client
+from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 
 LOG = logging.getLogger('websocket-proxy')
 
