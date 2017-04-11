@@ -224,7 +224,7 @@ class WebSocketClient(object):
 
     def event_check(self):
         try:
-            for fd, event in self.poll.poll(500):
+            for fd, event in self.poll.poll(50):
                 if fd == self.ws.fileno():
                     return self.handle_websocket(event)
         except select.error as e:

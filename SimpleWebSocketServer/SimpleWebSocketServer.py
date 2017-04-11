@@ -613,7 +613,6 @@ class SimpleWebSocketServer(object):
             if client.connected_server:
                recv_data = client.wscls.event_check()
                if recv_data:
-                  #client._transfer_data(recv_data)
                   client.sendMessage(recv_data)
 
          if self.selectInterval:

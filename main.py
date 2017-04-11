@@ -52,7 +52,6 @@ class SimpleChat(WebSocket):
        for client in clients:
     #      if client != self:
           if self.wscls is not None:
-             #import pdb;pdb.set_trace()
              self.wscls.ws.send(self.data)
 
     def handleConnected(self):
@@ -61,7 +60,7 @@ class SimpleChat(WebSocket):
           client.sendMessage(self.address[0] + u' - connected')
 
        clients.append(self)
-       url = "ws://kevin-mint:2375/v1.22/containers/322f05572bb831504ee3faef86960c1892e02f8d55456c29ad844be7dde52554/attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
+       url = "ws://kevin-mint:2375/v1.22/containers/d6be9aba74547a277c35eba5c1c4530c31b09f03f791631b9d522a0276a0af57/attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
        escape = "~"
        close_wait = 0.5
        self.wscls = WebSocketClient(host_url=url, escape=escape, close_wait=close_wait)
@@ -82,7 +81,6 @@ def main():
 
 #    if args.url or args.target.startswith('ws://'):
 #        console_url = args.target
-    connected_server = False
     server = SimpleWebSocketServer('', 13256, SimpleChat)
     server.serveforever()
 
