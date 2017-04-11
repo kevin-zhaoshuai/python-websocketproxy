@@ -2,10 +2,11 @@ import termios
 import sys
 import logging
 import argparse
-from websocketproxy.websocketclient import WebSocketClient as Client
+from websocketproxy.websocketclient import WebSocketClient
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 
 LOG = logging.getLogger('websocket-proxy')
+
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -36,8 +37,6 @@ def parse_args():
                    const=logging.INFO,
                    dest='loglevel')
 
-    openstack.add_openstack_args(p)
-
     p.add_argument('target',
                    help='A server name, uuid, or (with --url) '
                    'a websocket url')
@@ -47,15 +46,45 @@ def parse_args():
     return p.parse_args()
 
 
-def main(argv):
-    args = parse_args()
-    logging.basicConfig(level=args.loglevel) 
+clients = []
+class SimpleChat(WebSocket):
+    def handleMessage(self):
+       for client in clients:
+    #      if client != self:
+          if self.wscls is not None:
+             #import pdb;pdb.set_trace()
+             self.wscls.ws.send(self.data)
 
-    if args.url or args.target.startswith('ws://'):
-        console_url = args.target
+    def handleConnected(self):
+       print(self.address, 'connected')
+       for client in clients:
+          client.sendMessage(self.address[0] + u' - connected')
 
-    server = WebsocketServer(13254, host='0.0.0.0', loglevel=logging.DEBUG)
-    server.run_forever()
+       clients.append(self)
+       url = "ws://kevin-mint:2375/v1.22/containers/322f05572bb831504ee3faef86960c1892e02f8d55456c29ad844be7dde52554/attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
+       escape = "~"
+       close_wait = 0.5
+       self.wscls = WebSocketClient(host_url=url, escape=escape, close_wait=close_wait)
+       self.wscls.connect()
+       self.wscls.configure_websocketcls()
+       self.connected_server = True
+
+    def handleClose(self):
+       clients.remove(self)
+       print(self.address, 'closed')
+       for client in clients:
+          client.sendMessage(self.address[0] + u' - disconnected')
+
+def main():
+#    args = parse_args()
+
+#    logging.basicConfig(level=args.loglevel)
+
+#    if args.url or args.target.startswith('ws://'):
+#        console_url = args.target
+    connected_server = False
+    server = SimpleWebSocketServer('', 13256, SimpleChat)
+    server.serveforever()
 
     #websocketclient.do_attach(console_url, args.escape, args.close_wait)
 

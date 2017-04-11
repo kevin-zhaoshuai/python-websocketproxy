@@ -20,12 +20,10 @@ import struct
 import ssl
 import errno
 import codecs
+import six
 from collections import deque
 from select import select
 
-__all__ = ['WebSocket',
-            'SimpleWebSocketServer',
-            'SimpleSSLWebSocketServer']
 
 def _check_unicode(val):
     if VER >= 3:
@@ -106,6 +104,8 @@ class WebSocket(object):
       # restrict the size of header and payload for security reasons
       self.maxheader = MAXHEADER
       self.maxpayload = MAXPAYLOAD
+
+      self.connected_server = False
 
    def handleMessage(self):
       """
@@ -281,6 +281,10 @@ class WebSocket(object):
          else:
              for d in data:
                  self._parseMessage(ord(d))
+
+   def _transfer_data(self, recv_data):
+       for d in recv_data:
+           self._parseMessage(ord(d))
 
    def close(self, status = 1000, reason = u''):
        """
@@ -606,6 +610,11 @@ class SimpleWebSocketServer(object):
             client = self.connections[fileno]
             if client.sendq:
                writers.append(fileno)
+            if client.connected_server:
+               recv_data = client.wscls.event_check()
+               if recv_data:
+                  #client._transfer_data(recv_data)
+                  client.sendMessage(recv_data)
 
          if self.selectInterval:
             rList, wList, xList = select(self.listeners, writers, self.listeners, self.selectInterval)

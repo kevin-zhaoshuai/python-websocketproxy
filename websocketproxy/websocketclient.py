@@ -43,9 +43,8 @@ DEFAULT_SERVICE_TYPE = 'container'
 
 class WebSocketClient(object):
 
-    def __init__(self, host_url, id, escape='~',
+    def __init__(self, host_url, escape='~',
                  close_wait=0.5):
-        self.id = id
         self.escape = escape
         self.close_wait = close_wait
         self.host_url = host_url
@@ -96,11 +95,9 @@ class WebSocketClient(object):
         url = self.host_url
         LOG.debug('connecting to: %s', url)
         try:
-            #self.ws = websocket.create_connection(url,
-            #                                      skip_utf8_validation=True, http_proxy_host="10.169.36.100", http_proxy_port="8900")\
             self.ws = websocket.create_connection(url,
                                                   skip_utf8_validation=True)
-            print('connected to %s ,press Enter to continue' % self.id)
+            print('connected and press Enter to continue')
             print('type %s. to disconnect' % self.escape)
         except socket.error as e:
             raise exceptions.ConnectionFailed(e)
@@ -128,6 +125,13 @@ class WebSocketClient(object):
                 raise exceptions.Disconnected(e)
             finally:
                 self.restore_tty()
+
+    def configure_websocketcls(self):
+        self.poll = select.poll()
+        self.poll.register(self.ws,
+                           select.POLLIN | select.POLLHUP | select.POLLPRI)
+        self.start_of_line = False
+        self.read_escape = False
 
     def run_forever(self):
         LOG.debug('starting main loop in client')
@@ -216,9 +220,21 @@ class WebSocketClient(object):
                   repr(data), len(data))
         if not data:
             return
+        return data
 
-        sys.stdout.write(data)
-        sys.stdout.flush()
+    def event_check(self):
+        try:
+            for fd, event in self.poll.poll(500):
+                if fd == self.ws.fileno():
+                    return self.handle_websocket(event)
+        except select.error as e:
+            # POSIX signals interrupt select()
+            no = e.errno if six.PY3 else e[0]
+            #if no == errno.EINTR:
+             #   continue
+            #else:
+            raise e
+        return
 
     def handle_resize(self):
         """send the POST to resize the tty session size in container.
