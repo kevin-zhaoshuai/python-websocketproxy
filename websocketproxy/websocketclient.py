@@ -50,47 +50,6 @@ class WebSocketClient(object):
         self.host_url = host_url
         self.cs = None
 
-    def init_httpclient(self):
-        """Initialize the httpclient
-
-        Websocket client need to call httpclient to send the resize
-        command to Zun API server
-        """
-        os_username = os.environ.get('OS_USERNAME')
-        os_password = os.environ.get('OS_PASSWORD')
-        os_project_name = os.environ.get('OS_PROJECT_NAME')
-        os_project_id = os.environ.get('OS_PROJECT_ID')
-        os_user_domain_id = os.environ.get('OS_USER_DOMAIN_ID')
-        os_user_domain_name = os.environ.get('OS_USER_DOMAIN_NAME')
-        os_project_domain_id = os.environ.get('OS_PROJECT_DOMAIN_ID')
-        os_project_domain_name = os.environ.get('OS_PROJECT_DOMAIN_NAME')
-        os_auth_url = os.environ.get('OS_AUTH_URL')
-        endpoint_type = os.environ.get('ENDPOINT_TYPE')
-        service_type = os.environ.get('SERVICE_TYPE')
-        os_region_name = os.environ.get('OS_REGION_NAME')
-        bypass_url = os.environ.get('BYPASS_URL')
-        insecure = os.environ.get('INSECURE')
-        if not endpoint_type:
-            endpoint_type = DEFAULT_ENDPOINT_TYPE
-
-        if not service_type:
-            service_type = DEFAULT_SERVICE_TYPE
-
-        self.cs = client.Client(username=os_username,
-                                api_key=os_password,
-                                project_id=os_project_id,
-                                project_name=os_project_name,
-                                user_domain_id=os_user_domain_id,
-                                user_domain_name=os_user_domain_name,
-                                project_domain_id=os_project_domain_id,
-                                project_domain_name=os_project_domain_name,
-                                auth_url=os_auth_url,
-                                service_type=service_type,
-                                region_name=os_region_name,
-                                zun_url=bypass_url,
-                                endpoint_type=endpoint_type,
-                                insecure=insecure)
-
     def connect(self):
         url = self.host_url
         LOG.debug('connecting to: %s', url)
@@ -222,9 +181,17 @@ class WebSocketClient(object):
             return
         return data
 
+    def handle_recv(self):
+        data = self.ws.recv()
+        LOG.debug('read %s (%d bytes) from websocket from container',
+                  repr(data), len(data))
+        if not data:
+            return
+        return data
+
     def event_check(self):
         try:
-            for fd, event in self.poll.poll(50):
+            for fd, event in self.poll.poll(10):
                 if fd == self.ws.fileno():
                     return self.handle_websocket(event)
         except select.error as e:
@@ -353,7 +320,6 @@ def do_attach(url, container, escape, close_wait):
         try:
             wscls = WebSocketClient(host_url=url, id=container,
                                     escape=escape, close_wait=close_wait)
-            wscls.init_httpclient()
             wscls.connect()
             wscls.handle_resize()
             wscls.start_loop()

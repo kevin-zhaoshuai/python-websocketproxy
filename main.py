@@ -49,10 +49,7 @@ def parse_args():
 clients = []
 class SimpleChat(WebSocket):
     def handleMessage(self):
-       for client in clients:
-    #      if client != self:
-          if self.wscls is not None:
-             self.wscls.ws.send(self.data)
+        self.target.ws.send(self.data)
 
     def handleConnected(self):
        print(self.address, 'connected')
@@ -60,13 +57,6 @@ class SimpleChat(WebSocket):
           client.sendMessage(self.address[0] + u' - connected')
 
        clients.append(self)
-       url = "ws://kevin-mint:2375/v1.22/containers/d6be9aba74547a277c35eba5c1c4530c31b09f03f791631b9d522a0276a0af57/attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
-       escape = "~"
-       close_wait = 0.5
-       self.wscls = WebSocketClient(host_url=url, escape=escape, close_wait=close_wait)
-       self.wscls.connect()
-       self.wscls.configure_websocketcls()
-       self.connected_server = True
 
     def handleClose(self):
        clients.remove(self)
@@ -81,10 +71,14 @@ def main():
 
 #    if args.url or args.target.startswith('ws://'):
 #        console_url = args.target
-    server = SimpleWebSocketServer('', 13256, SimpleChat)
-    server.serveforever()
-
-    #websocketclient.do_attach(console_url, args.escape, args.close_wait)
+    url = "ws://kevin-mint:2375/v1.22/containers/d6be9aba74547a277c35eba5c1c4530c31b09f03f791631b9d522a0276a0af57/attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
+    escape = "~"
+    close_wait = 0.5
+    wscls = WebSocketClient(host_url=url, escape=escape, close_wait=close_wait)
+    wscls.connect()
+    wscls.configure_websocketcls()
+    server = SimpleWebSocketServer('', 13256, SimpleChat, wscls)
+    server.proxy()
 
 
 if __name__ == '__main__':
