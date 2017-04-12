@@ -24,6 +24,7 @@ import base64
 import socket
 import struct
 import ssl
+import sys
 import errno
 import codecs
 from collections import deque
@@ -593,19 +594,26 @@ class SimpleWebSocketServer(object):
       while True:
          writers = []
          for fileno in self.listeners:
-            if fileno == self.serversocket:
-               continue
             if isinstance(fileno, int):
                client = self.connections[fileno]
                if client.sendq:
                   writers.append(fileno)
-
-         if self.selectInterval:
+         try:
             rList, wList, xList = select(self.listeners, writers, [], self.selectInterval)
-         else:
-            rList, wList, xList = select(self.listeners, writers, [])
+         except (select.error, OSError):
+            exc = sys.exc_info()[1]
+            if hasattr(exc, 'errno'):
+               err = exc.errno
+            else:
+               err = exc[0]
+
+            if err != errno.EINTR:
+               raise
+            else:
+               continue
 
          for ready in wList:
+            #import pdb;pdb.set_trace()
             client = self.connections[ready]
             try:
                while client.sendq:
@@ -627,19 +635,17 @@ class SimpleWebSocketServer(object):
          # Receive data from the target, send to clients
          for ready in rList:
             if ready == self.target.ws:
+               data = self.target.handle_recv()
                for fileno in self.listeners:
                   if isinstance(fileno, int):
                      client = self.connections[fileno]
-                     data = self.target.handle_recv()
                      client.sendMessage(data)
 
             if ready == self.serversocket:
                try:
                   sock, address = self.serversocket.accept()
-                  newsock = self._decorateSocket(sock)
-                  newsock.setblocking(0)
-                  fileno = newsock.fileno()
-                  self.connections[fileno] = self._constructWebSocket(newsock, address, self.target)
+                  fileno = sock.fileno()
+                  self.connections[fileno] = self._constructWebSocket(sock, address, self.target)
                   self.listeners.append(fileno)
                except Exception as n:
                   if sock is not None:

@@ -47,7 +47,7 @@ def parse_args():
 
 
 clients = []
-class SimpleChat(WebSocket):
+class SimpleProxy(WebSocket):
     def handleMessage(self):
         self.target.ws.send(self.data)
 
@@ -65,19 +65,15 @@ class SimpleChat(WebSocket):
           client.sendMessage(self.address[0] + u' - disconnected')
 
 def main():
-#    args = parse_args()
-
-#    logging.basicConfig(level=args.loglevel)
-
-#    if args.url or args.target.startswith('ws://'):
-#        console_url = args.target
-    url = "ws://kevin-mint:2375/v1.22/containers/d6be9aba74547a277c35eba5c1c4530c31b09f03f791631b9d522a0276a0af57/attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
+    target_url = "ws://kevin-mint:2375/v1.22/containers/" \
+          "d6be9aba74547a277c35eba5c1c4530c31b09f03f791631b9d522a0276a0af57/" \
+          "attach/ws?logs=0&stream=1&stdin=1&stdout=1&stderr=1"
     escape = "~"
     close_wait = 0.5
-    wscls = WebSocketClient(host_url=url, escape=escape, close_wait=close_wait)
+    wscls = WebSocketClient(host_url=target_url, escape=escape, close_wait=close_wait)
     wscls.connect()
     wscls.configure_websocketcls()
-    server = SimpleWebSocketServer('', 13256, SimpleChat, wscls)
+    server = SimpleWebSocketServer('', 13256, SimpleProxy, wscls)
     server.proxy()
 
 
