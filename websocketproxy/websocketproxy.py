@@ -565,7 +565,7 @@ class WebSocket(object):
             self.index += 1
 
 
-class SimpleWebSocketServer(object):
+class WebSocketProxy(object):
    def __init__(self, host, port, websocketclass, target, selectInterval = 0.1):
       self.websocketclass = websocketclass
       self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -675,19 +675,19 @@ class SimpleWebSocketServer(object):
                self.listeners.remove(failed)
 
 
-class SimpleSSLWebSocketServer(SimpleWebSocketServer):
+class SSLWebSocketProxy(WebSocketProxy):
 
    def __init__(self, host, port, websocketclass, certfile,
                 keyfile, target, version = ssl.PROTOCOL_TLSv1, selectInterval = 0.1):
 
-      SimpleWebSocketServer.__init__(self, host, port,
+      WebSocketProxy.__init__(self, host, port,
                                         websocketclass, selectInterval, target)
 
       self.context = ssl.SSLContext(version)
       self.context.load_cert_chain(certfile, keyfile)
 
    def close(self):
-      super(SimpleSSLWebSocketServer, self).close()
+      super(SSLWebSocketProxy, self).close()
 
    def _decorateSocket(self, sock):
       sslsock = self.context.wrap_socket(sock, server_side=True)
@@ -699,4 +699,4 @@ class SimpleSSLWebSocketServer(SimpleWebSocketServer):
       return ws
 
    def proxy(self):
-      super(SimpleSSLWebSocketServer, self).proxy()
+      super(SSLWebSocketProxy, self).proxy()

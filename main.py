@@ -3,7 +3,7 @@ import sys
 import logging
 import argparse
 from websocketproxy.websocketclient import WebSocketClient
-from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
+from websocketproxy.websocketproxy import WebSocketProxy, WebSocket
 
 LOG = logging.getLogger('websocket-proxy')
 
@@ -73,7 +73,7 @@ def main():
     wscls = WebSocketClient(host_url=target_url, escape=escape, close_wait=close_wait)
     wscls.connect()
     wscls.configure_websocketcls()
-    server = SimpleWebSocketServer('', 13256, SimpleProxy, wscls)
+    server = WebSocketProxy('', 13256, SimpleProxy, wscls)
     server.proxy()
 
 
