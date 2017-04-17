@@ -1,12 +1,12 @@
-import termios
-import sys
 import logging
 import argparse
+import websocket
+import socket
 from websocketproxy.websocketclient import WebSocketClient
 from websocketproxy.websocketproxy import WebSocketProxy, WebSocket
+from websocketproxy import exceptions
 
 LOG = logging.getLogger('websocket-proxy')
-
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -72,9 +72,14 @@ def main():
     close_wait = 0.5
     wscls = WebSocketClient(host_url=target_url, escape=escape, close_wait=close_wait)
     wscls.connect()
-    wscls.configure_websocketcls()
+
     server = WebSocketProxy('', 13256, SimpleProxy, wscls)
-    server.proxy()
+    try:
+        server.proxy()
+    except socket.error as e:
+        raise exceptions.ConnectionFailed(e)
+    except websocket.WebSocketConnectionClosedException as e:
+        raise exceptions.Disconnected(e)
 
 
 if __name__ == '__main__':

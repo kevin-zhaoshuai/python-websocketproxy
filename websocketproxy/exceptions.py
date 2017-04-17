@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-class ContainerWebSocketException(Exception):
+class WebSocketException(Exception):
     'base for all ContainerWebSocket interactive generated exceptions'
     def __init__(self, wrapped=None, message=None):
         self.wrapped = wrapped
@@ -24,24 +24,76 @@ class ContainerWebSocketException(Exception):
             formatted_string = "%s:%s" % (self.message, str(self.wrapped))
         else:
             formatted_string = "%s" % self.message
-        super(ContainerWebSocketException, self).__init__(formatted_string)
+        super(WebSocketException, self).__init__(formatted_string)
 
 
-class UserExit(ContainerWebSocketException):
+class UserExit(WebSocketException):
     message = "User requested disconnect the container"
 
 
-class Disconnected(ContainerWebSocketException):
+class Disconnected(WebSocketException):
     message = "Remote host closed connection"
 
 
-class ConnectionFailed(ContainerWebSocketException):
+class ConnectionFailed(WebSocketException):
     message = "Failed to connect to remote host"
 
 
-class InvalidWebSocketLink(ContainerWebSocketException):
+class InvalidWebSocketLink(WebSocketException):
     message = "Invalid websocket link when attach container"
 
 
-class ContainerFailtoStart(ContainerWebSocketException):
-    message = "Container fail to start"
+class ControlFrameOverLimit(WebSocketException):
+    message = "control frame length can not be > 125"
+
+
+class UnknownOPCCode(WebSocketException):
+    message = "Unknown OPC Code"
+
+
+class MessageFragmentFail(WebSocketException):
+    message = "control messages can not be fragmented"
+
+
+class FragmentProtocolError(WebSocketException):
+    message = "fragmentation protocol error"
+
+
+class InvalidUtf8Payload(WebSocketException):
+    message = "invalid utf-8 payload"
+
+
+class ExcceedSize(WebSocketException):
+    message = "exceeded allowable size:"
+
+
+class RemoteSocketClose(WebSocketException):
+    message = "remote socket closed"
+
+class HandshakeFailed(WebSocketException):
+    message = "handshake failed:"
+
+
+class SockerError(WebSocketException):
+    message = "Socket Error"
+
+
+class RSVBitError(WebSocketException):
+    message = "RSV bit must be 0"
+
+
+class ReceivedClientClose(WebSocketException):
+    message = "received client closed"
+
+
+class ValidationError(WebSocketException):
+    message = "validation error: "
+
+
+class VersionMismatch(WebSocketException):
+    message = "Version: "
+
+
+class InvalidToken(WebSocketException):
+    message = "Invalid Token"
+
