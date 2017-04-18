@@ -28,6 +28,7 @@ import ssl
 import sys
 import errno
 import codecs
+import websocket
 from collections import deque
 from select import select
 
@@ -73,11 +74,10 @@ MAXPAYLOAD = 33554432
 
 class WebSocket(object):
 
-   def __init__(self, server, sock, address, target):
+   def __init__(self, server, sock, address):
       self.server = server
       self.client = sock
       self.address = address
-      self.target = target
 
       self.handshaked = False
       self.headerbuffer = bytearray()
@@ -100,6 +100,8 @@ class WebSocket(object):
       self.frag_decoder = codecs.getincrementaldecoder('utf-8')(errors='strict')
       self.closed = False
       self.sendq = deque()
+      self.target = None
+      self.headerid = None
 
       self.state = HEADERB1
 
@@ -235,7 +237,7 @@ class WebSocket(object):
               self.handleMessage()
 
 
-   def _handleData(self):
+   def _handleData(self, proxy):
       # do normal data
       if self.handshaked is True:
          data = self.client.recv(16384)
@@ -246,11 +248,9 @@ class WebSocket(object):
 
       # else do the HTTP header and handshake
       else:
-
          data = self.client.recv(self.headertoread)
          if not data:
             raise exceptions.RemoteSocketClose()
-
          else:
             # accumulate
             self.headerbuffer.extend(data)
@@ -269,8 +269,10 @@ class WebSocket(object):
                   k_s = base64.b64encode(hashlib.sha1(k).digest()).decode('ascii')
                   hStr = HANDSHAKE_STR % {'acceptstr': k_s}
                   self.sendq.append((BINARY, hStr.encode('ascii')))
+                  self.headerid = self.request.headers['User-Agent']
                   self.handshaked = True
                   self.handleConnected()
+                  proxy.listeners.append(self.target.ws)
                except Exception as e:
                   raise exceptions.HandshakeFailed(str(e))
 
@@ -536,7 +538,6 @@ class WebSocket(object):
 
             # we have no mask and some payload
             else:
-               #self.index = 0
                self.data = bytearray()
                self.state = PAYLOAD
 
@@ -564,7 +565,7 @@ class WebSocket(object):
 
 
 class WebSocketProxy(object):
-   def __init__(self, host, port, websocketclass, target, selectInterval = 0.1):
+   def __init__(self, host, port, websocketclass, selectInterval = 0.1):
       self.websocketclass = websocketclass
       self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -572,11 +573,10 @@ class WebSocketProxy(object):
       self.serversocket.listen(5)
       self.selectInterval = selectInterval
       self.connections = {}
-      self.target = target
-      self.listeners = [self.serversocket, self.target.ws]
+      self.listeners = [self.serversocket]
 
-   def _constructWebSocket(self, sock, address, target):
-      return self.websocketclass(self, sock, address, target)
+   def _constructWebSocket(self, sock, address):
+      return self.websocketclass(self, sock, address)
 
    def close(self):
       self.serversocket.close()
@@ -595,7 +595,7 @@ class WebSocketProxy(object):
                   writers.append(fileno)
 
          try:
-            rList, wList, xList = select(self.listeners, writers, self.listeners, self.selectInterval)
+            rList, wList, xList = select(self.listeners, writers, [], self.selectInterval)
          except (select.error, OSError):
             exc = sys.exc_info()[1]
             if hasattr(exc, 'errno'):
@@ -628,18 +628,19 @@ class WebSocketProxy(object):
                self.listeners.remove(ready)
 
          for ready in rList:
-            if ready == self.target.ws:
-               data = self.target.handle_recv()
-               for fileno in self.listeners:
-                  if isinstance(fileno, int):
-                     client = self.connections[fileno]
-                     client.sendMessage(data)
+            if isinstance(ready, websocket._core.WebSocket):
+                for fileno in self.listeners:
+                   if isinstance(fileno, int):
+                       client = self.connections[fileno]
+                       if ready == client.target.ws:
+                           data = client.target.handle_recv()
+                           client.sendMessage(data)
 
             if ready == self.serversocket:
                try:
                   sock, address = self.serversocket.accept()
                   fileno = sock.fileno()
-                  self.connections[fileno] = self._constructWebSocket(sock, address, self.target)
+                  self.connections[fileno] = self._constructWebSocket(sock, address)
                   self.listeners.append(fileno)
                except Exception as n:
                   if sock is not None:
@@ -649,7 +650,7 @@ class WebSocketProxy(object):
             if isinstance(ready, int):
                   client = self.connections[ready]
                   try:
-                     client._handleData()
+                     client._handleData(self)
                   except Exception as n:
                      client.client.close()
                      client.handleClose()
@@ -673,7 +674,7 @@ class WebSocketProxy(object):
 class SSLWebSocketProxy(WebSocketProxy):
 
    def __init__(self, host, port, websocketclass, certfile,
-                keyfile, target, version = ssl.PROTOCOL_TLSv1, selectInterval = 0.1):
+                keyfile, version=ssl.PROTOCOL_TLSv1, selectInterval = 0.1):
 
       WebSocketProxy.__init__(self, host, port,
                                         websocketclass, selectInterval, target)
@@ -688,8 +689,8 @@ class SSLWebSocketProxy(WebSocketProxy):
       sslsock = self.context.wrap_socket(sock, server_side=True)
       return sslsock
 
-   def _constructWebSocket(self, sock, address, target):
-      ws = self.websocketclass(self, sock, address, target)
+   def _constructWebSocket(self, sock, address):
+      ws = self.websocketclass(self, sock, address)
       ws.usingssl = True
       return ws
 

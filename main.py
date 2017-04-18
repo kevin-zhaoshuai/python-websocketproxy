@@ -23,16 +23,10 @@ class SimpleProxy(WebSocket):
            close_wait = 0.5
            wscls = WebSocketClient(host_url=target_url, escape=escape, close_wait=close_wait)
            wscls.connect()
-           wscls.configure_websocketcls()
            self.target = wscls
-           return self.target
-
 
     def handleClose(self):
-       clients.remove(self)
        print(self.address, 'closed')
-       for client in clients:
-          client.sendMessage(self.address[0] + u' - disconnected')
 
 def main():
     server = WebSocketProxy('', 13256, SimpleProxy)
