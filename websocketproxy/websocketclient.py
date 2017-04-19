@@ -17,6 +17,7 @@
 #    under the License.
 
 import errno
+import exceptions
 import fcntl
 import logging
 import os
@@ -31,8 +32,6 @@ import time
 import tty
 import websocket
 
-from zunclient.common.websocketclient import exceptions
-from zunclient.v1 import client
 
 LOG = logging.getLogger(__name__)
 
@@ -189,20 +188,6 @@ class WebSocketClient(object):
             return
         return data
 
-    def event_check(self):
-        try:
-            for fd, event in self.poll.poll(10):
-                if fd == self.ws.fileno():
-                    return self.handle_websocket(event)
-        except select.error as e:
-            # POSIX signals interrupt select()
-            no = e.errno if six.PY3 else e[0]
-            #if no == errno.EINTR:
-             #   continue
-            #else:
-            raise e
-        return
-
     def handle_resize(self):
         """send the POST to resize the tty session size in container.
 
@@ -328,4 +313,3 @@ def do_attach(url, container, escape, close_wait):
                   {'e': e, 'container': container})
     else:
         raise exceptions.InvalidWebSocketLink(container)
-

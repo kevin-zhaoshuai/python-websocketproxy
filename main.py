@@ -3,7 +3,8 @@ import sys
 import logging
 
 from websocketproxy.websocketclient import WebSocketClient
-from websocketproxy.websocketproxy import WebSocketProxy, WebSocket
+from websocketproxy.websocketbase import WebSocket
+from websocketproxy.websocketproxy import WebSocketProxy
 
 LOG = logging.getLogger('websocket-proxy')
 

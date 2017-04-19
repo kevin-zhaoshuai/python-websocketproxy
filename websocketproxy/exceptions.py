@@ -70,6 +70,7 @@ class ExcceedSize(WebSocketException):
 class RemoteSocketClose(WebSocketException):
     message = "remote socket closed"
 
+
 class HandshakeFailed(WebSocketException):
     message = "handshake failed:"
 
@@ -84,16 +85,3 @@ class RSVBitError(WebSocketException):
 
 class ReceivedClientClose(WebSocketException):
     message = "received client closed"
-
-
-class ValidationError(WebSocketException):
-    message = "validation error: "
-
-
-class VersionMismatch(WebSocketException):
-    message = "Version: "
-
-
-class InvalidToken(WebSocketException):
-    message = "Invalid Token"
-
